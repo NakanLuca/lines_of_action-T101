@@ -32,7 +32,7 @@ class CPUPlayer
     // plusieurs coups possibles si et seuleument si plusieurs coups
     // ont le même score.
     public ArrayList<Move> getNextMoveMinMax(Board board) {
-        numExploredNodes = 0;
+        numExploredNodes = -1; // starts at -1 to not count the root node
         currentDepth = 0;
         Node result = miniMax(board, playerMark);
         return result.moves;
@@ -91,23 +91,28 @@ class CPUPlayer
     // Retourne la liste des coups possibles.  Cette liste contient
     // plusieurs coups possibles si et seuleument si plusieurs coups
     // ont le même score.
-    public ArrayList<Move> getNextMoveAB(Board board){
-        numExploredNodes = 0;
-        Node result = alphaBeta(board, playerMark, Integer.MIN_VALUE, Integer.MAX_VALUE);
-        return result.moves;
+    public ArrayList<Move> getNextMoveAB(Board board) {
+        numExploredNodes = -1; // don't count the root node
+        RootResult rootResult = evaluateRootMoves(board, playerMark);
+        return rootResult.bestMoves;
     }
 
-    private Node alphaBeta(Board board, Mark currentPlayer, int alpha, int beta) {
-        numExploredNodes++;
-        //System.out.println("Node explored: " + numExploredNodes);
-        //System.out.println("Current depth: " + currentDepth);
-        if (board.isFinal()) {
-            return new Node(board.evaluate(playerMark), (Move) null);
-        }
+    // Helper class for returning both score and bestMoves from the root
+    private static class RootResult {
+        int bestScore;
+        ArrayList<Move> bestMoves;
 
+        RootResult(int bestScore, ArrayList<Move> bestMoves) {
+            this.bestScore = bestScore;
+            this.bestMoves = bestMoves;
+        }
+    }
+
+    // Evaluate all root moves with full alpha-beta search for exact scores
+    private RootResult evaluateRootMoves(Board board, Mark currentPlayer) {
         List<Move> moves = board.getMoves();
         if (moves.isEmpty()) {
-            return new Node(0, (Move) null);
+            return new RootResult(0, new ArrayList<>());
         }
 
         boolean isMax = (currentPlayer == playerMark);
@@ -115,12 +120,8 @@ class CPUPlayer
         ArrayList<Move> bestMoves = new ArrayList<>();
 
         for (Move move : moves) {
-
             board.play(move, currentPlayer);
-            // Change to the next player
-            //currentDepth++;
-            Node child = alphaBeta(board, opp(currentPlayer), alpha, beta);
-            //currentDepth--;
+            Node child = alphaBetaInner(board, opp(currentPlayer), Integer.MIN_VALUE, Integer.MAX_VALUE);
             board.undo(move);
 
             int score = child.score;
@@ -133,8 +134,7 @@ class CPUPlayer
                 } else if (score == bestScore) {
                     bestMoves.add(move);
                 }
-                alpha = Math.max(alpha, bestScore);
-            } else { // MIN
+            } else {
                 if (score < bestScore) {
                     bestScore = score;
                     bestMoves.clear();
@@ -142,14 +142,73 @@ class CPUPlayer
                 } else if (score == bestScore) {
                     bestMoves.add(move);
                 }
-                beta = Math.min(beta, bestScore);
-            }
-            if (beta < alpha) {
-                break;
             }
         }
 
-        return new Node(bestScore, bestMoves);
+        return new RootResult(bestScore, bestMoves);
+    }
+
+    // Standard alpha-beta for non-root recursion
+    private Node alphaBetaInner(Board board, Mark currentPlayer, int alpha, int beta) {
+        numExploredNodes++;
+
+        if (board.isFinal()) {
+            return new Node(board.evaluate(playerMark), (Move) null);
+        }
+
+        List<Move> moves = board.getMoves();
+        if (moves.isEmpty()) {
+            return new Node(0, (Move) null);
+        }
+
+        boolean isMax = (currentPlayer == playerMark);
+
+        if (isMax) {
+            int bestScore = Integer.MIN_VALUE;
+
+            for (Move move : moves) {
+                board.play(move, currentPlayer);
+                Node child = alphaBetaInner(board, opp(currentPlayer), alpha, beta);
+                board.undo(move);
+
+                int score = child.score;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                }
+
+                alpha = Math.max(alpha, bestScore);
+
+                if (alpha >= beta) {
+                    break; // prune
+                }
+            }
+
+            return new Node(bestScore, (Move) null);
+
+        } else {
+            int bestScore = Integer.MAX_VALUE;
+
+            for (Move move : moves) {
+                board.play(move, currentPlayer);
+                Node child = alphaBetaInner(board, opp(currentPlayer), alpha, beta);
+                board.undo(move);
+
+                int score = child.score;
+
+                if (score < bestScore) {
+                    bestScore = score;
+                }
+
+                beta = Math.min(beta, bestScore);
+
+                if (beta <= alpha) {
+                    break; // prune
+                }
+            }
+
+            return new Node(bestScore, (Move) null);
+        }
     }
 
 

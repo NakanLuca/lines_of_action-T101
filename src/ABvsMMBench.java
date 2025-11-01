@@ -75,10 +75,11 @@ public class ABvsMMBench {
     }
 
     public static void main(String[] args) {
-        benchOne("Empty board", boardFromRows("...", "...", "..."), Mark.X);
-        benchOne("Early midgame", boardFromRows("X..", ".O.", "..."), Mark.X);
-        benchOne("Late game", boardFromRows("XO.", "OX.", "..X"), Mark.O);
-        benchOne("Immediate win threat", boardFromRows("XX.", ".O.", "..."), Mark.X);
-        benchOne("Block needed", boardFromRows("OO.", ".X.", "..."), Mark.X);
+        benchOne("Empty board O", boardFromRows("X..", "...", "..."), Mark.O);
+        benchOne("Empty board X", boardFromRows("...", "...", "..."), Mark.X);
+        //benchOne("Early midgame", boardFromRows("X..", ".O.", "..."), Mark.X);
+        //benchOne("Late game", boardFromRows("XO.", "OX.", "..X"), Mark.O);
+        //benchOne("Immediate win threat", boardFromRows("XX.", ".O.", "..."), Mark.X);
+        //benchOne("Block needed", boardFromRows("OO.", ".X.", "..."), Mark.X);
     }
 }
